@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Reservation System</title>
+    <link href="{{ url_for('static', filename='styles.css') }}" rel="stylesheet" type="text/css">
+    <link href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css" rel="stylesheet">
+</head>
+<body>
+<div class="container">
+    <h1>Reservation System</h1>
+    <p>Welcome to the Reservation System for football pitches.</p>
+
+    <div class="grid">
+        <div class="grid-item">
+            <h2>Login</h2>
+            <form action="{{ url_for('auth.login') }}" method="post">
+                <label for="login_username">Username:</label>
+                <input id="login_username" name="username" required type="text">
+                <label for="login_password">Password:</label>
+                <input id="login_password" name="password" required type="password">
+                <button type="submit">Login</button>
+            </form>
+        </div>
+
+        <div class="grid-item">
+            <h2>Register</h2>
+            <form action="{{ url_for('auth.register') }}" method="post">
+                <label for="register_username">Username:</label>
+                <input id="register_username" name="username" required type="text">
+                <label for="register_password">Password:</label>
+                <input id="register_password" name="password" required type="password">
+                <label for="register_email">Email:</label>  <!-- Add the email field -->
+                <input id="register_email" name="email_address" required type="email">
+                <button type="submit">Register</button>
+            </form>
+        </div>
+    </div>
+    {% with messages = get_flashed_messages(with_categories=true) %}
+                {% if messages %}
+                    <ul class="flash-messages">
+                        {% for category, message in messages %}
+                            <li class="flash-message flash-{{ category }}">{{ message }}</li>
+                        {% endfor %}
+                    </ul>
+                {% endif %}
+            {% endwith %}
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
+<script>
+    // Your JavaScript code here
+</script>
+
+</body>
+</html>

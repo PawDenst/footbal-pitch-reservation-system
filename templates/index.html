@@ -1,0 +1,86 @@
+{% with messages = get_flashed_messages(with_categories=true) %}
+                {% if messages %}
+                    <ul class="flash-messages">
+                        {% for category, message in messages %}
+                            <li class="flash-message flash-{{ category }}">{{ message }}</li>
+                        {% endfor %}
+                    </ul>
+                {% endif %}
+{% endwith %}
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Reservation System</title>
+    <link href="{{ url_for('static', filename='styles.css') }}" rel="stylesheet" type="text/css">
+    <link href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css" rel="stylesheet">
+</head>
+<body>
+<div class="container">
+    <h1>Reservation System</h1>
+    {% if session.get("username") %}
+        <p>Welcome, {{ session["username"] }}!</p>
+    {% endif %}
+    <p>Please select an option:</p>
+
+
+<!-- Add a logout form -->
+    <form action="{{ url_for('auth.logout') }}" method="post">
+        <button type="submit">Logout</button>
+    </form>
+    <div class="grid">
+        <div class="grid-item">
+            <h2>Get Available Reservations</h2>
+            <form action="{{ url_for('get_available_slots') }}" method="post">
+                <label for="get_reservation_date">Reservation Date:</label>
+                <input id="get_reservation_date" name="reservation_date" required type="date">
+                <label for="get_object_name">Object Name:</label>
+                <select id="get_object_name" name="object_name" required>
+                    <option value="">Select an object</option>
+                    <option value="Object 1">Object 1</option>
+                    <option value="Object 2">Object 2</option>
+                    <option value="Object 3">Object 3</option>
+                </select>
+                <button type="submit">View Available Slots</button>
+            </form>
+        </div>
+    </div>
+
+
+    {% if session.get("role") == "admin" %}
+    <form action="{{ url_for('delete_reservations_route') }}" method="post">
+        <div class="grid-ites">
+            <h2>Delete Reservations for selected date</h2>
+            <label for="delete_reservation_date">Reservation Date:</label>
+            <input id="delete_reservation_date" name="reservation_date" required type="date">
+            <button type="submit">Delete Reservations</button>
+        </div>
+    </form>
+{% endif %}
+
+{% if session.get("role") == "admin" %}
+    <form action="{{ url_for('delete_reservations_route') }}" method="post">
+        <div class="grid-item">
+            <h2>Delete Reservations for selected object</h2>
+            <label for="cancel_object">Object name:</label>
+            <select id="cancel_object" name="object_name" required>
+                    <option value="">Select an object</option>
+                    <option value="Object 1">Object 1</option>
+                    <option value="Object 2">Object 2</option>
+                    <option value="Object 3">Object 3</option>
+            </select>
+            <button type="submit">Delete Reservations</button>
+        </div>
+    </form>
+{% endif %}
+
+
+    <div id="calendar-container"></div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
+<script>
+    // Your JavaScript code here
+</script>
+
+</body>
+</html>

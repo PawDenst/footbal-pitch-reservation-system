@@ -1,0 +1,213 @@
+<html>
+<head>
+    <title>Status Results</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link href="{{ url_for('static', filename='slots_styles.css') }}" rel="stylesheet" type="text/css">
+
+    {% with messages = get_flashed_messages() %}
+    {% if messages %}
+        <div class="flash-messages">
+            {% for message in messages %}
+                <div class="flash-message">{{ message }}</div>
+            {% endfor %}
+        </div>
+    {% endif %}
+{% endwith %}
+
+{% if flash_message %}
+    <div class="flash-message">{{ flash_message }}</div>
+{% endif %}
+
+
+
+    <style>
+        canvas {
+            width: 100%;
+            height: 500px; /* Adjust the height as desired */
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        .container {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: space-between;
+        }
+
+        #motion-section {
+            width: 48%;
+        }
+
+        #status-section {
+            width: 48%;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+
+        <div id="motion-section">
+            <h1>Motion Data Difference Chart:</h1>
+            <canvas id="motionChart"></canvas>
+            <h1 style="font-size: 24px;">People right now:</h1>
+            <p style="font-size: 20px;"> {{ motion_result }}</p>
+        </div>
+
+        <div id="status-section">
+            <h1>All statuses:</h1>
+            <canvas id="statusChart"></canvas>
+            <h1 style="font-size: 24px;">Last Status:</h1>
+            <p style="font-size: 20px;">Status: {{ status_message }}</p>
+        </div>
+    </div>
+
+    <table>
+        <tr>
+        <th>Date</th>
+        <th>Object Name</th>
+        <th>Hour Range</th>
+        <th>Player Name</th>
+        <th>Email</th>
+        <th>Reservation</th>
+        <th>Cancel Reservation</th>
+    </tr>
+    {% for slot in slots %}
+        <tr>
+            <td>{{ slot.reservation_date }}</td>
+            <td>{{ slot.object_name }}</td>
+            <td>{{ slot.hour_range }}</td>
+            <td>{{ slot.player_name }}</td>
+            {% if session.get("role") == "admin"  or (session.get("role") == "user" and session.get("username") == slot.player_name) %}
+                <td>{{ slot.email_address }}</td>
+            {% elif slot.player_name == None  %}
+                <td>None</td>
+            {% else %}
+                <td>Not authorized</td>
+            {% endif %}
+            <td>
+                <form action="/reserve-slot" method="POST">
+                    <input type="hidden" name="reservation_date" value="{{ slot.reservation_date }}">
+                    <input type="hidden" name="object_name" value="{{ slot.object_name }}">
+                    <input type="hidden" name="hour_range" value="{{ slot.hour_range }}">
+                    <input type="hidden" name="slot_number" value="{{ slot.slot_number }}">
+                    {% if session.get("role") == "admin" %}
+                        <button type="submit" disabled>Reserve</button>
+                    {% elif slot.player_name %}
+                        <button type="submit" disabled>Reserved</button>
+                    {% else %}
+                        <button type="submit">Reserve</button>
+                    {% endif %}
+                </form>
+            </td>
+            <td>
+                {% if (session.get("role") == "admin" and slot.player_name) or (session.get("role") == "user" and session.get("username") == slot.player_name) %}
+                    <form action="/cancel-reservation" method="POST">
+                        <input type="hidden" name="reservation_date" value="{{ slot.reservation_date }}">
+                        <input type="hidden" name="object_name" value="{{ slot.object_name }}">
+                        <input type="hidden" name="hour_range" value="{{ slot.hour_range }}">
+                        <button type="submit">Cancel Slot</button>
+                    </form>
+                {% else %}
+                    <button type="button" disabled>Cancel Slot</button>
+                {% endif %}
+            </td>
+        {% endfor %}
+    </tr>
+    {% if session.get("role") == "admin" %}
+        <tr>
+            <td colspan="9">
+                <form action="/cancel-reservation" method="POST">
+                    <input type="hidden" name="reservation_date" value="{{ slots[0].reservation_date }}">
+                    <input type="hidden" name="object_name" value="{{ slots[0].object_name }}">
+                    <input type="hidden" name="cancel_all" value="true">
+                    <button type="submit">Cancel All Reservations</button>
+                </form>
+            </td>
+        </tr>
+    {% endif %}
+    </table>
+
+    <tr>
+        <td colspan="9">
+            <form action="/index">
+                <button type="submit">Back to previous page</button>
+            </form>
+        </td>
+    </tr>
+
+    <script>
+    // Motion Chart
+    const comparisonTimes = {{ comparison_times | tojson | safe }};
+    const timeLabelsMotion = comparisonTimes;
+    const count = {{ count | tojson | safe }};
+
+    const ctxMotion = document.getElementById('motionChart').getContext('2d');
+    new Chart(ctxMotion, {
+        type: 'line',
+        data: {
+            labels: timeLabelsMotion,
+            datasets: [{
+                label: 'Count',
+                data: count,
+                borderColor: 'rgba(255, 99, 132, 1)',
+                backgroundColor: 'rgba(255, 99, 132, 0.2)',
+                borderWidth: 1
+            }]
+        },
+        options: {
+            scales: {
+                y: {
+                    beginAtZero: true,
+                    stepSize: 1
+                }
+            },
+            plugins: {
+                tooltip: {
+                    callbacks: {
+                        label: function (context) {
+                            return context.dataset.label + ': ' + context.parsed.y;
+                        }
+                    }
+                }
+            }
+        }
+    });
+</script>
+    <script>
+        // Status Chart
+        const statusData = {{ status_data | tojson | safe }};
+        const today = new Date().toISOString().slice(0, 10); // Get today's date in 'yyyy-mm-dd' format
+        const filteredData = statusData.filter(entry => entry.time.includes(today));
+        const timeLabelsStatus = filteredData.map(entry => entry.time.slice(11, 16)); // Extract hour portion in status
+        const statusValues = filteredData.map(entry => entry.status);
+
+        const ctxStatus = document.getElementById('statusChart').getContext('2d');
+        new Chart(ctxStatus, {
+            type: 'line',
+            data: {
+                labels: timeLabelsStatus,
+                datasets: [{
+                    label: 'Status',
+                    data: statusValues,
+                    borderColor: 'rgba(0, 12, 200, 1)',
+                    backgroundColor: 'rgba(75, 192, 192, 0.2)',
+                    borderWidth: 1
+                }]
+            },
+            options: {
+                scales: {
+                    y: {
+                        ticks: {
+                            stepSize: 1,
+                            callback: function(value, index, values) {
+                                return value === 1 ? 'Occupied' : value === 0 ? 'Not Occupied' : undefined;
+                            },
+                            color: 'black' // Set the color of the label text to black
+                        }
+                    }
+                }
+            }
+        });
+    </script>
+</body>
+</html>
